@@ -1,95 +1,82 @@
-const gameGrid = document.getElementById("game-grid");
-const timerDisplay = document.getElementById("timer");
-const gameMessage = document.getElementById("game-message");
-const leaderboardContainer = document.getElementById("leaderboard");
-const difficultyMenu = document.getElementById("difficulty");
-const filterDifficulty = document.getElementById("filter-difficulty");
-const startButton = document.getElementById("start-button");
-const prevPageButton = document.getElementById("prev-page");
-const nextPageButton = document.getElementById("next-page");
-const pageInfo = document.getElementById("page-info");
-
-let tiles = [];
-let flippedTiles = [];
-let matchedCount = 0;
-let timer = 30;
-let timerInterval;
-let currentPage = 1;
-let totalPages = 1;
-let currentFilter = "";
-
-// Difficulty settings
-const difficultySettings = {
-  easy: { gridSize: 2, timer: 15 },
-  medium: { gridSize: 4, timer: 30 },
-  hard: { gridSize: 6, timer: 60 },
-};
-
-// Word pairs
-const wordPairs = [
-  { word: "Cat", match: "https://example.com/cat.png" },
-  { word: "Dog", match: "https://example.com/dog.png" },
-  { word: "Apple", match: "https://example.com/apple.png" },
-  { word: "Car", match: "https://example.com/car.png" },
+let words = [
+    { word: "apple", translation: "Apfel" },
+    { word: "dog", translation: "Hund" },
+    { word: "cat", translation: "Katze" },
+    { word: "house", translation: "Haus" },
+    { word: "book", translation: "Buch" },
+    { word: "water", translation: "Wasser" },
+    { word: "friend", translation: "Freund" },
+    { word: "light", translation: "Licht" },
 ];
 
-// Start Game
-startButton.addEventListener("click", () => {
-  const difficulty = difficultyMenu.value;
-  const { gridSize, timer: time } = difficultySettings[difficulty];
-  timer = time;
-  generateGrid(gridSize);
-  startGame();
-});
+let score = 0;
+let flippedCards = [];
+let hintCount = 3;
 
-// Fetch and Display Leaderboard
-function fetchLeaderboard(page = 1, filter = "") {
-  fetch(`http://localhost:5000/leaderboard?page=${page}&difficulty=${filter}`)
-    .then((response) => response.json())
-    .then(({ scores, total }) => {
-      displayLeaderboard(scores);
-      totalPages = Math.ceil(total / 10);
-      updatePagination(page, totalPages);
-    })
-    .catch((err) => console.error("Error fetching leaderboard:", err));
+function shuffleCards() {
+    const gameBoard = document.getElementById('game-board');
+    gameBoard.innerHTML = '';
+    let shuffledWords = [...words, ...words];
+    shuffledWords = shuffledWords.sort(() => Math.random() - 0.5);
+
+    shuffledWords.forEach((wordObj) => {
+        const card = document.createElement('div');
+        card.classList.add('card');
+        card.setAttribute('data-word', wordObj.word);
+        card.setAttribute('data-translation', wordObj.translation);
+        card.textContent = wordObj.word;
+        card.addEventListener('click', flipCard);
+        gameBoard.appendChild(card);
+    });
 }
 
-function displayLeaderboard(scores) {
-  leaderboardContainer.innerHTML = "";
-  scores.forEach((entry, index) => {
-    const listItem = document.createElement("li");
-    listItem.innerHTML = `<span>${index + 1}. ${entry.username}</span><span>${entry.score} pts</span>`;
-    leaderboardContainer.appendChild(listItem);
-  });
+function flipCard(event) {
+    const clickedCard = event.target;
+    if (flippedCards.length < 2 && !clickedCard.classList.contains('flipped')) {
+        clickedCard.classList.add('flipped');
+        flippedCards.push(clickedCard);
+        if (flippedCards.length === 2) {
+            setTimeout(checkMatch, 1000);
+        }
+    }
 }
 
-function updatePagination(page, total) {
-  currentPage = page;
-  prevPageButton.disabled = page === 1;
-  nextPageButton.disabled = page === total;
-  pageInfo.textContent = `Page ${page} of ${total}`;
+function checkMatch() {
+    const [card1, card2] = flippedCards;
+    if (card1.getAttribute('data-word') === card2.getAttribute('data-translation') || 
+        card1.getAttribute('data-translation') === card2.getAttribute('data-word')) {
+        score += 10;
+        document.getElementById('score').textContent = `Score: ${score}`;
+    } else {
+        card1.classList.remove('flipped');
+        card2.classList.remove('flipped');
+    }
+    flippedCards = [];
 }
 
-prevPageButton.addEventListener("click", () => {
-  if (currentPage > 1) fetchLeaderboard(currentPage - 1, currentFilter);
-});
-
-nextPageButton.addEventListener("click", () => {
-  if (currentPage < totalPages) fetchLeaderboard(currentPage + 1, currentFilter);
-});
-
-filterDifficulty.addEventListener("change", (e) => {
-  currentFilter = e.target.value;
-  fetchLeaderboard(1, currentFilter);
-});
-
-// Highlight player and update leaderboard after saving score
-function submitScore(username, score, difficulty) {
-  fetch("http://localhost:5000/submit-score", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, score, difficulty }),
-  })
-    .then(() => fetchLeaderboard(currentPage, currentFilter))
-    .catch((err) => console.error("Error submitting score:", err));
+function giveHint() {
+    if (hintCount > 0) {
+        hintCount--;
+        const cards = document.querySelectorAll('.card:not(.flipped)');
+        const randomCard1 = cards[Math.floor(Math.random() * cards.length)];
+        const translation = randomCard1.getAttribute('data-translation');
+        const matchingCard = [...cards].find(card => card.getAttribute('data-word') === translation || card.getAttribute('data-translation') === translation);
+        if (matchingCard) {
+            randomCard1.classList.add('flipped');
+            matchingCard.classList.add('flipped');
+            setTimeout(() => {
+                randomCard1.classList.remove('flipped');
+                matchingCard.classList.remove('flipped');
+            }, 1000);
+        }
+        document.getElementById('hint-count').textContent = `Hints Left: ${hintCount}`;
+    }
 }
+
+document.getElementById('hint-btn').addEventListener('click', giveHint);
+
+function startGame() {
+    shuffleCards();
+}
+
+startGame();
