@@ -1,82 +1,79 @@
-let words = [
-    { word: "apple", translation: "Apfel" },
-    { word: "dog", translation: "Hund" },
-    { word: "cat", translation: "Katze" },
-    { word: "house", translation: "Haus" },
-    { word: "book", translation: "Buch" },
-    { word: "water", translation: "Wasser" },
-    { word: "friend", translation: "Freund" },
-    { word: "light", translation: "Licht" },
+const wordPairs = [
+    { en: 'hello', de: 'hallo' },
+    { en: 'goodbye', de: 'auf Wiedersehen' },
+    { en: 'dog', de: 'Hund' },
+    { en: 'cat', de: 'Katze' },
+    { en: 'apple', de: 'Apfel' },
+    { en: 'water', de: 'Wasser' },
+    { en: 'book', de: 'Buch' },
+    { en: 'house', de: 'Haus' },
+    { en: 'car', de: 'Auto' },
+    { en: 'school', de: 'Schule' },
 ];
 
-let score = 0;
 let flippedCards = [];
-let hintCount = 3;
+let score = 0;
 
-function shuffleCards() {
-    const gameBoard = document.getElementById('game-board');
-    gameBoard.innerHTML = '';
-    let shuffledWords = [...words, ...words];
-    shuffledWords = shuffledWords.sort(() => Math.random() - 0.5);
+function shuffleAndDisplayCards() {
+    const cards = [...wordPairs, ...wordPairs]; // Double the word pairs
+    cards.sort(() => Math.random() - 0.5);
 
-    shuffledWords.forEach((wordObj) => {
+    const container = document.querySelector('.cards-container');
+    container.innerHTML = '';
+
+    cards.forEach((pair, index) => {
         const card = document.createElement('div');
         card.classList.add('card');
-        card.setAttribute('data-word', wordObj.word);
-        card.setAttribute('data-translation', wordObj.translation);
-        card.textContent = wordObj.word;
-        card.addEventListener('click', flipCard);
-        gameBoard.appendChild(card);
+        card.dataset.index = index;
+        card.innerHTML = `
+            <div class="front">?</div>
+            <div class="back">${Math.random() > 0.5 ? pair.en : pair.de}</div>
+        `;
+        card.addEventListener('click', () => flipCard(card, pair));
+
+        container.appendChild(card);
     });
 }
 
-function flipCard(event) {
-    const clickedCard = event.target;
-    if (flippedCards.length < 2 && !clickedCard.classList.contains('flipped')) {
-        clickedCard.classList.add('flipped');
-        flippedCards.push(clickedCard);
+function flipCard(card, pair) {
+    if (flippedCards.length < 2 && !card.classList.contains('flipped')) {
+        card.classList.add('flipped');
+        flippedCards.push(card);
+
         if (flippedCards.length === 2) {
-            setTimeout(checkMatch, 1000);
+            checkMatch(pair);
         }
     }
 }
 
-function checkMatch() {
+function checkMatch(pair) {
     const [card1, card2] = flippedCards;
-    if (card1.getAttribute('data-word') === card2.getAttribute('data-translation') || 
-        card1.getAttribute('data-translation') === card2.getAttribute('data-word')) {
-        score += 10;
-        document.getElementById('score').textContent = `Score: ${score}`;
-    } else {
-        card1.classList.remove('flipped');
-        card2.classList.remove('flipped');
-    }
-    flippedCards = [];
-}
 
-function giveHint() {
-    if (hintCount > 0) {
-        hintCount--;
-        const cards = document.querySelectorAll('.card:not(.flipped)');
-        const randomCard1 = cards[Math.floor(Math.random() * cards.length)];
-        const translation = randomCard1.getAttribute('data-translation');
-        const matchingCard = [...cards].find(card => card.getAttribute('data-word') === translation || card.getAttribute('data-translation') === translation);
-        if (matchingCard) {
-            randomCard1.classList.add('flipped');
-            matchingCard.classList.add('flipped');
+    if (card1.querySelector('.back').innerText === card2.querySelector('.back').innerText) {
+        // Correct match
+        score++;
+        flippedCards = [];
+
+        if (score === wordPairs.length) {
             setTimeout(() => {
-                randomCard1.classList.remove('flipped');
-                matchingCard.classList.remove('flipped');
-            }, 1000);
+                document.querySelector('.game-over').style.display = 'block';
+            }, 500);
         }
-        document.getElementById('hint-count').textContent = `Hints Left: ${hintCount}`;
+    } else {
+        // Incorrect match
+        setTimeout(() => {
+            card1.classList.remove('flipped');
+            card2.classList.remove('flipped');
+            flippedCards = [];
+        }, 1000);
     }
 }
 
-document.getElementById('hint-btn').addEventListener('click', giveHint);
+document.getElementById('retry-btn').addEventListener('click', () => {
+    score = 0;
+    flippedCards = [];
+    document.querySelector('.game-over').style.display = 'none';
+    shuffleAndDisplayCards();
+});
 
-function startGame() {
-    shuffleCards();
-}
-
-startGame();
+shuffleAndDisplayCards();
