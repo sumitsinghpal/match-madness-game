@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Match Madness Game</title>
+    <title>Match the Words Game</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="game-container">
-        <h1>Match Madness: English to German</h1>
-        <div id="score">Score: 0</div>
-        <div id="hint-count">Hints Left: 3</div>
-        <div id="language-name">Language: English to German</div>
-        <div id="game-board" class="game-board"></div>
-        <button id="hint-btn">Get a Hint</button>
-        <button id="freeze-btn">Freeze Time</button>
-        <button id="share-btn">Share Your Score</button>
+    <div class="game-container">
+        <h1>Match the Words Game</h1>
+        <p>Match the English word with the correct German word.</p>
+        <div class="cards-container">
+            <!-- Cards will be dynamically inserted here -->
+        </div>
+        <div class="game-over" style="display: none;">
+            <p>You completed the game! Well done!</p>
+            <button id="retry-btn">Play Again</button>
+        </div>
     </div>
     <script src="script.js"></script>
 </body>
